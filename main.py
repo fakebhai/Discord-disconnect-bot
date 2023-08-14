@@ -63,6 +63,11 @@ async def on_ready():
             else:
                 asyncio.create_task(disconnect_user(member, channel, disconnect_time))
 
+import asyncio
+from datetime import datetime, timedelta
+
+PENDING_COMMANDS_FILE = 'pending_commands.txt'
+
 @bot.event
 async def on_message(message):
     if message.content.startswith('!disconnect') or message.content.startswith('!d'):
@@ -71,21 +76,21 @@ async def on_message(message):
             time_str = message.content.split()[-1]
             delay = int(time_str[:-1])
             unit = time_str[-1]
-            if unit == 's':
+            if unit.lower() == 's':
                 delay = timedelta(seconds=delay)
-            elif unit == 'm':
+            elif unit.lower() == 'm':
                 delay = timedelta(minutes=delay)
-            elif unit == 'h':
+            elif unit.lower() == 'h':
                 delay = timedelta(hours=delay)
+            else:
+                raise ValueError('Invalid time format')
             disconnect_time = datetime.now() + delay
             with open(PENDING_COMMANDS_FILE, 'a') as f:
                 f.write(f'{member.id} {message.channel.id} {disconnect_time.isoformat()}\n')
             await message.channel.send(f'{member.mention} will be disconnected from the voice channel in {time_str}')
             asyncio.create_task(disconnect_user(member, message.channel, disconnect_time))
-        except IndexError:
-            await message.channel.send('Please mention a user to disconnect.')
-        except ValueError:
-            await message.channel.send('Invalid time format. Please use a number followed by "s" for seconds, "m" for minutes, or "h" for hours.')
+        except (IndexError, ValueError):
+            await message.channel.send('Invalid command format. Please mention a user to disconnect and specify the delay time using a number followed by "s" for seconds, "m" for minutes, or "h" for hours.')
 
     if message.content.startswith('!cancel') or message.content.startswith('!c'):
         try:
