@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
+from discord import Embed
 
 load_dotenv()
 
@@ -114,15 +115,14 @@ async def on_message(message):
             if len(lines) == 0:
                 await message.channel.send('The queue is empty.')
             else:
-                queue_list = [f'{get_member_name(line)} will be disconnected at {get_disconnect_time(line)} or after {get_time_remaining(line)}' for line in lines]
-                queue_message = '```[Total]\n'
-                queue_message += '\n'.join([f'{i+1}. {item}' for i, item in enumerate(queue_list)])
-                queue_message += '```'
-                await message.channel.send(queue_message)
+                queue_list = [f'{get_member_name(line)} will be disconnected at \n{get_disconnect_time(line)} or after {get_time_remaining(line)}' for line in lines]
+                embed = Embed(title='Total', description='\n'.join([f'{i+1}. {item}' for i, item in enumerate(queue_list)]))
+                await message.channel.send(embed=embed)
         except FileNotFoundError:
             await message.channel.send('The queue is empty.')
         except Exception as e:
             print(e)
+
 
 def get_member_name(line):
     user_id = int(line.split()[0])
@@ -133,12 +133,34 @@ def get_member_name(line):
 def get_disconnect_time(line):
     disconnect_time_str = line.split()[2]
     disconnect_time = datetime.fromisoformat(disconnect_time_str)
-    return disconnect_time.strftime('%Y-%m-%d %H:%M:%S')
+    timestamp = int(disconnect_time.timestamp())
+    return f'<t:{timestamp}:T>'
 
 def get_time_remaining(line):
     disconnect_time_str = line.split()[2]
     disconnect_time = datetime.fromisoformat(disconnect_time_str)
     remaining_time = disconnect_time - datetime.now()
-    return str(remaining_time)
+    
+    days, seconds = remaining_time.days, remaining_time.seconds
+    years, days = divmod(days, 365)
+    months, days = divmod(days, 30)
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    
+    time_str = ""
+    if years > 0:
+        time_str += f"```{years} Years``` "
+    if months > 0:
+        time_str += f"```{months} Months``` "
+    if days > 0:
+        time_str += f"```{days} Days``` "
+    if hours > 0:
+        time_str += f"```{hours} Hours``` "
+    if minutes > 0:
+        time_str += f"```{minutes} Minutes``` "
+    if seconds > 0:
+        time_str += f"```{seconds} Seconds``` "
+    
+    return time_str.strip()
 
 bot.run(os.getenv("TOKEN"))
