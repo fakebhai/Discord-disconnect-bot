@@ -38,7 +38,7 @@ pip install -r requirements.txt
 
 ```bash
 
-python bot.py
+python main.py
 
 ```
 
